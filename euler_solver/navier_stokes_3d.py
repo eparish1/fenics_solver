@@ -57,6 +57,46 @@ def eulerStrongFormResid(Q,Qx,Qy,Qz):
     return f
 
 
+def applyJT(Q0,Qp):
+  ''' 
+  Routine for flux jacobian evaluated at Q0, acting on Qp
+  inputs: Q0 \in \R^5
+          Qp \in \R^5
+  returns vector products [ dF_i/dV(Q0) ]Qp, i=1,2,3, where
+  F_i is the flux vector in the ith direction, F_i: V -> F(V)
+  '''
+  gamma = 1.4
+  u = Q0[1]/Q0[0]
+  v = Q0[2]/Q0[0]
+  w = Q0[3]/Q0[0]
+  qsqr = u**2 + v**2 + w**2
+  # compute H in three steps (H = E + p/rho)
+  H = (gamma - 1.)*(Q0[4] - 0.5*Q0[0]*qsqr) #compute pressure
+  H += Q0[4]
+  H /= Q0[0]
+  fx = [None]*5
+  fx[0] = ( (gamma - 1.)/2.*qsqr - u**2 )*Qp[1] - u*v*Qp[2] - u*w*Qp[3] + ((gamma - 1.)/2.*qsqr - H)*u*Qp[4]
+  fx[1] = Qp[0] + (3 - gamma)*u*Qp[1] + v*Qp[2] + w*Qp[3] + (H + (1. - gamma)*u**2)*Qp[4] 
+  fx[2] = (1 - gamma)*v*Qp[1] + u*Qp[2] + (1 - gamma)*u*v*Qp[4]
+  fx[3] = (1 - gamma)*w*Qp[1] + u*Qp[3] + (1 - gamma)*u*w*Qp[4] 
+  fx[4] = (gamma - 1.)*Qp[1] + gamma*u*Qp[4]
+
+  fy = [None]*5
+  fy[0] = -v*u*Qp[1] + ( (gamma - 1.)/2.*qsqr - v**2 )*Qp[2] - v*w*Qp[3] +  ((gamma - 1.)/2.*qsqr - H)*v*Qp[4]
+  fy[1] = Qp[1] + (1 - gamma)*v*Qp[2] + (1 - gamma)*u*v*Qp[4]
+  fy[2] = Qp[0] + u*Qp[1] + (3. - gamma)*u*Qp[2] + w*Qp[3] + (H + (1. - gamma)*v**2 )*Qp[4] 
+  fy[3] = (1. - gamma)*w*Qp[2] + v*Qp[3] + (1. - gamma)*v*w*Qp[4] 
+  fy[4] = (gamma - 1.)*Qp[2] + gamma*v*Qp[4] 
+
+  fz = [None]*5
+  fz[0] = -u*w*Qp[1] - v*w*Qp[2] + ( (gamma - 1.)/2.*qsqr - w**2)*Qp[3] + ((gamma - 1.)/2.*qsqr - H)*w*Qp[4] 
+  fz[1] = w*Qp[1] + (1. - gamma)*u*Qp[3] + (1. - gamma)*u*v*Qp[4]
+  fz[2] = w*Qp[2] + (1. - gamma)*v*Qp[3] + (1. - gamma)*v*w*Qp[4]
+  fz[3] = Qp[0] + u*Qp[1] + v*Qp[2] + (3. - gamma)*w*Qp[3] + (H + (1. - gamma)*w**2 )*Qp[4]
+  fz[4] = (gamma - 1.)*Qp[3] + gamma*w*Qp[4]
+  return fx,fy,fz
+
+
 def eulerInviscidFluxLin(Q0,Qp):
   #decompose as Q = Q0 + Qp, where Qp is the perturbation
   gamma = 1.4

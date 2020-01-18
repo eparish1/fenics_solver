@@ -1,19 +1,43 @@
 from dolfin import *
 
+#compute the action of JT on J
+def applyJT(Q0,Qp):
+  es = 1.e-30
+  gamma = 1.4 
+  u = Q0[1]/Q0[0]
+  qsqr = u**2
+  # compute H in three steps (H = E + p/rho)
+  H = (gamma - 1.)*(Q0[2] - 0.5*Q0[0]*qsqr) #compute pressure
+  H += Q0[2]
+  H /= Q0[0]
+  f = [None]*3
+  f[0] = (  (gamma - 1.)/2.*qsqr - u**2 )   *Qp[1] + \
+         (  (gamma- -1.)/2.*qsqr - H )*u    *Qp[2]
+
+  f[1] =            1                       *Qp[0] + \
+         (  (3 - gamma)*u               )   *Qp[1] + \
+         (  H + (1 - gamma)*u**2        )   *Qp[2]
+
+  f[2] = (  (gamma - 1.)                )   *Qp[1] + \
+         (  gamma * u                   )   *Qp[2]
+
+  return f
+
+
 def eulerInviscidFlux(Q):
   Fx = [None]*3
   es = 1.e-30
   gamma = 1.4
   rho = Q[0]
   rhoU = Q[1]
-  rhoE = Q[-1]
+  rhoE = Q[2]
   p = (gamma - 1.)*(rhoE - 0.5*rhoU**2/rho)
   Fx[0] = Q[1]  
   Fx[1] = rhoU*rhoU/(rho) + p 
   Fx[2] = (rhoE + p)*rhoU/(rho) 
   return Fx
 
-def evalInviscidFluxLinNS(Q0,Qp):
+def applyJ(Q0,Qp):
   es = 1.e-30
   gamma = 1.4 
   u = Q0[1]/Q0[0]
@@ -49,11 +73,11 @@ def eulerInviscidWeak(Q,Phi):
   rhoU = Q[1]
   #rhoV = Q[2]
   #rhoW = Q[3]
-  rhoE = Q[-1]
+  rhoE = Q[2]
   p = (gamma - 1.)*(rhoE - 0.5*rhoU**2/rho)# - 0.5*rhoV**2/rho - 0.5*rhoW**2/rho)
   F =  inner( Phi[0].dx(0) , Q[1] )*dx + \
        inner( Phi[1].dx(0) , rhoU*rhoU/(rho) + p )*dx + \
-       inner( Phi[-1].dx(0) , (rhoE + p)*rhoU/(rho) )*dx
+       inner( Phi[2].dx(0) , (rhoE + p)*rhoU/(rho) )*dx
   return F
   '''
   F =  inner( Phi[0].dx(0) , Q[1] )*dx + \
