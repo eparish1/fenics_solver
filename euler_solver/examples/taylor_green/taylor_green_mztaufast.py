@@ -97,12 +97,11 @@ Ly = 2.*pi
 Lz = 2.*pi
 x0 = Point(0.,0.,0.)
 x1 = Point(Lx,Ly,Lz)
-mesh = BoxMesh(x0,x1,32,32,32)
+mesh = BoxMesh(x0,x1,4,4,4)
 File("mesh.pvd") << mesh
 
 element = VectorElement("CG", mesh.ufl_cell(), 1,dim=5)
 V = FunctionSpace(mesh, element, constrained_domain=PeriodicDomainXYZ())
-V2 = FunctionSpace(mesh, element, constrained_domain=PeriodicDomainXYZ())
 
 #f0 = Expression('sin(x[0])*cos(x)*sin(y)')
 
@@ -112,53 +111,61 @@ y0 = 0.
 
 # Define variational problem
 U =  Function(V)
+Utrial = TrialFunction(V)
 U_n = Function(V)
 U_n2 = Function(V)
 Phi = TestFunction(V)
 
 ## for additional MZ projection
-Rproject = Function(V2)
-PhiR = TestFunction(V2)
+Rproject = Function(V)
 
 u_init = InitialConditionsVortex()
 U.interpolate(u_init)
 U_n.interpolate(u_init)
 
-dt = 0.05
+dt = 0.1#125
 dti = 1./dt
 et = 100.
 Ux,Uy,Uz = U.dx(0), U.dx(1),U.dx(2)
 
 eqn = eulerEqns3D()
-Rx,Ry,Rz = eqn.evalF(U)
-
-R_strong= eqn.evalF_Strong(U,Ux,Uy,Uz)
-R_strong_n = eqn.evalF_Strong(U_n,U_n.dx(0),U_n.dx(1),U_n.dx(2) )
-
-R_ortho = [None]*5
-for i in range(0,5):
-  R_ortho[i] = R_strong_n[i] - Rproject[i]
-
-Rlin_x,Rlin_y,Rlin_z = eqn.applyJ(U_n,R_ortho,R_ortho,R_ortho)
-#JR_ortho = [None]*5
-#for i in range(0,5):
-#  JR_ortho[i] = Rlin_x[i] + Rlin_y[i] + Rlin_z[i] 
-
 
 F = 0
-tau = 0.5*dt
+tau = 0.5*0.05#dt
 q_degree = 3
 dx = dx(metadata={'quadrature_degree': q_degree})
 
+def stabilizationMZ(Phi,U):
+  R_strong_n = eqn.evalF_Strong(U,U.dx(0),U.dx(1),U.dx(2) )
+  R_ortho = [None]*5
+  for i in range(0,5):
+    R_ortho[i] = R_strong_n[i] - Rproject[i]
+  Rlin_x,Rlin_y,Rlin_z = eqn.applyJ(U,R_ortho,R_ortho,R_ortho)
+  F_stabilized = 0
+  for i in range(0,5):
+    F_stabilized +=  inner(Phi[i].dx(0),tau*Rlin_x[i] )*dx + \
+                     inner(Phi[i].dx(1),tau*Rlin_y[i] )*dx + \
+                     inner(Phi[i].dx(2),tau*Rlin_z[i] )*dx
+  return F_stabilized 
 
-
-for i in range(0,5):
-  F +=  inner(Phi[i] ,R_strong[i] )*dx + \
-        inner(Phi[i].dx(0),tau*Rlin_x[i] )*dx + \
-        inner(Phi[i].dx(1),tau*Rlin_y[i] )*dx + \
-        inner(Phi[i].dx(2),tau*Rlin_z[i] )*dx 
-
+def evalF(Phi,U):
+  Rx,Ry,Rz = eqn.evalF(U)
+  R_strong= eqn.evalF_Strong(U,Ux,Uy,Uz)
+  #R_strong_n = eqn.evalF_Strong(U_n,U_n.dx(0),U_n.dx(1),U_n.dx(2) )
+  #R_ortho = [None]*5
+  #for i in range(0,5):
+  #  R_ortho[i] = R_strong_n[i] - Rproject[i]
+  #Rlin_x,Rlin_y,Rlin_z = eqn.applyJ(U_n,R_ortho,R_ortho,R_ortho)
+  F = 0
+  for i in range(0,5):
+    F +=  inner(Phi[i] ,R_strong[i] )*dx 
+  return F,R_strong
 #F_BDF2 = F
+
+'''
+for i in range(0,4):
+  Un = U0 + dt*dk4const[i]*getRHS(Un)
+'''
 
 def mass_BDF2(Phi,U,auxU_container,dt):
   U_nm1 = auxU_container[0]
@@ -174,39 +181,61 @@ def mass_BDF1(Phi,U,auxU_container,dt):
   return F_BDF1
 
 
+F_n,dum = evalF(Phi,U)
+F_nm1,R_strong_n = evalF(Phi,U_n)
+Fstabilized = stabilizationMZ(Phi,U_n)
+F = F_n + Fstabilized
+
+
 auxU_container = [U_n,U_n2]
 M_BDF2 = mass_BDF2(Phi,U,auxU_container,dt)
 M_BDF1 = mass_BDF1(Phi,U,auxU_container,dt)
-
 F_BDF2 = 2./3.*F + M_BDF2
 F_BDF1 = F + M_BDF1
+#F_CN = 0.5*(F_n + F_nm1) + Fstabilized  + M_BDF1
 
 #F2 = 0
 #for i in range(0,5):
 #  F2 +=  inner(PhiR[i] , Rproject[i] )*dx  - inner(PhiR[i], R_strong_n[i])*dx
 
-a2 = 0
-for i in range(0,5):
-  a2 +=  inner(PhiR[i] , Rproject[i] )*dx
+a2 = inner(Phi,Utrial)*dx
+#for i in range(0,5):
+#  a2 +=  inner(PhiR[i] , Rproject[i] )*dx
 L2 = 0
 for i in range(0,5):
-  L2 += inner(PhiR[i],R_strong_n[i])*dx
-F2 = a2 - L2
+  L2 += inner(Phi[i],R_strong_n[i])*dx
+#F2 = a2 - L2
 # Compute solution
 t = 0
 counter = 0
 energy = np.zeros(0)
 timer_s = time.time()
-while (t <= et - dt/2):
-  #file = File("sol_sod/sod_" + str(counter) + ".pvd")
-#  u_0_, u_1_, u_2_,u_3_,u_4_ = U.split()
-#  vtkfile_u_0 <<  (u_0_ , u_1_,t)
-  #vtkfile_u_1 << (u_0_ , t)
 
-#  solve(F == 0, U,[],solver_parameters={"linear_solver": "lu"})
+nxSave,nySave,nzSave = 128,128,128
+def grab_sol(U):
+  u_1_, u_2_, u_3_,u_4_,u_5_ = U.split()
+  x = np.linspace(0,Lx,nxSave)
+  U = np.zeros((5,nxSave,nySave,nzSave))
+  for i in range(0,nxSave):
+    for j in range(0,nySave):
+      for k in range(0,nzSave):
+        U[0,i] = u_1_(x[i],x[j],x[k])
+        U[1,i] = u_2_(x[i],x[j],x[k])
+        U[2,i] = u_3_(x[i],x[j],x[k])
+  return U
+
+Hdf = HDF5File(mesh.mpi_comm(),'Solution/sol.hdf',"w")
+Hdf.write(mesh,"mesh")
+save_freq = 10
+while (t <= et - dt/2):
+  if (counter%save_freq == 0):
+    Hdf.write(U,"u",counter)
+   
+
   integral = assemble( ( 1./0.2**2*0.5*(U[1]**2 + U[2]**2 + U[3]**2)/U[0]**2)*dx)
-  #solve(a2 == L2 , Rproject)
-  solve(F2 == 0, Rproject, [], solver_parameters={"newton_solver":{"relative_tolerance": 1e-8, "linear_solver":"gmres"}} )
+  solve(a2 == L2 , Rproject,solver_parameters={"linear_solver":"cg"})
+  #solve(F2 == 0, Rproject, [], solver_parameters={"newton_solver":{"relative_tolerance": 1e-8, "linear_solver":"gmres"}} )
+  #solve(F_CN == 0, U, [], solver_parameters={"newton_solver":{"relative_tolerance": 1e-8, "linear_solver":"gmres"}} )
   if (counter == 0):
     solve(F_BDF1 == 0, U, [], solver_parameters={"newton_solver":{"relative_tolerance": 1e-8, "linear_solver":"gmres"}} )
   else:
@@ -215,7 +244,8 @@ while (t <= et - dt/2):
   U_n.assign(U)
   t += dt
   energy = np.append(energy,integral)
-  np.savez('energymz_bdf2',energy=energy)
+  np.savez('Solution/energymz_dt' + str(dt) + '_tau' + str(tau),energy=energy)
+  #unp = grab_sol(U)
 #  #plot(u,interactive=True)
   counter += 1
   sys.stdout.write('===============================' + '\n')

@@ -1,8 +1,8 @@
 from dolfin import *
 import sys
 import numpy as np
-sys.path.append('../../')
-from navier_stokes import *
+sys.path.append('../../src')
+from euler_1d import *
 if has_linear_algebra_backend("Epetra"):
     parameters["linear_algebra_backend"] = "Epetra"
 
@@ -84,21 +84,28 @@ nu = 1e-3
 b = Constant([1.,0.])
 dt = 0.0005 
 dti = 1./dt
-et = 2.0 
+et = 0.2 
 Ux = U.dx(0)
-Rx = eulerInviscidFlux(U)
-R_strong = strongFormResidNS(U,Ux)
-R_strong += dti*(U - U_n)
+
+eqn = eulerEqns1D()
+
+Rx = eqn.evalF(U)
+#R_strong = eqn.evalF_Strong(U,Ux)
+R_strong = eqn.applyJ(U,Ux)
+
+R_strongDT = [None]*3
+for i in range(0,3):
+  R_strongDT[i] = R_strong[i] +  dti*(U[i] - U_n[i])
 
 tau_rat = 0.5
 tau = tau_rat*dt#(L/nx) / rhoVal 
 
-JTPhi = applyJT(U, Phi.dx(0) )
-AU = applyJ(U,Ux) 
+JTPhi = eqn.applyJT(U, Phi.dx(0) )
+#AU = eqn.applyJ(U,Ux) 
 F = 0
 for i in range(0,3):
-  F += inner( Phi[i] ,AU[i] )*dx + \
-       inner( JTPhi[i] , tau* R_strong[i])*dx  
+  F += inner( Phi[i] ,R_strong[i] )*dx + \
+       inner( JTPhi[i] , tau* R_strongDT[i])*dx  
 for i in range(0,3):
   F = F + inner(Phi[i], dti*(U[i] - U_n[i]) )*dx
 
@@ -129,6 +136,7 @@ while (t <= et - dt/2):
   file = File("Sol/PVsol_" + str(counter) + ".pvd")
   #u_1_, u_2_, u_3_,u_4_,u_5_,u_6_ = U.split()
   #file << u_1_
+  integral = assemble( ( 0.5*(U[1]**2)/U[0]**2)*dx)
   solve(F == 0, U, [bcl,bcr], solver_parameters={"newton_solver":{"relative_tolerance": 1e-6}})
   if (counter % save_freq == 0):
     sol_save = np.append(sol_save,grab_sol(U)[None],axis=0)
@@ -138,6 +146,7 @@ while (t <= et - dt/2):
   counter += 1
   print(t,counter)
 #'''
+print(' Energy = ' + str(integral))
 
-np.savez('Sol/supg3_nx_' + str(nx) + '_taurat_' + str(tau_rat) + '_dt_' + str(dt) ,U=sol_save,tau=tau,dt=dt)
+#np.savez('Sol/supg3_nx_' + str(nx) + '_taurat_' + str(tau_rat) + '_dt_' + str(dt) ,U=sol_save,tau=tau,dt=dt)
 
