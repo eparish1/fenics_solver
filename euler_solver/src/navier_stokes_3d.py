@@ -8,10 +8,11 @@ class navierStokesEqns3D:
   applyJ = eulerEq.applyJ
   applyJT = eulerEq.applyJT
   nvars = 5
-
-  mu = 1./100.*0.2
-
-
+  gamma = eulerEq.gamma
+  def __init__(self,mu = 1./100.*0.2,Pr=0.72):
+    self.mu = mu
+    self.Pr = Pr
+    self.params = {"mu":self.mu , "gamma":self.gamma, "Pr":self.Pr }
   def evalGsGradients(self,Q,Qx,Qy,Qz):
     gamma = 1.4
     Pr = 0.72

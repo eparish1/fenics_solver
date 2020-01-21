@@ -1,14 +1,16 @@
 from list_container import *
 class eulerEqns3D:
   nvars = 5
+  def __init__(self,gamma=1.4):
+    self.gamma = gamma
   def evalF(self,Q):
-    gamma = 1.4
+    self.gamma = 1.4
     rho = Q[0]
     rhoU = Q[1]
     rhoV = Q[2]
     rhoW = Q[3]
     rhoE = Q[4]
-    p = (gamma - 1.)*(rhoE - 0.5*rhoU**2/rho - 0.5*rhoV**2/rho - 0.5*rhoW**2/rho)
+    p = (self.gamma - 1.)*(rhoE - 0.5*rhoU**2/rho - 0.5*rhoV**2/rho - 0.5*rhoW**2/rho)
     fx = listContainer_1d(self.nvars)
     fx[0] = Q[1]*1
     fx[1] = rhoU*rhoU/(rho) + p
@@ -33,11 +35,11 @@ class eulerEqns3D:
 
 
   def evalF_Strong(self,Q,Qx,Qy,Qz):
-    gamma = 1.4
-    p = (gamma - 1.)*(Q[4] - 0.5*Q[1]**2/Q[0] - 0.5*Q[2]**2/Q[0] - 0.5*Q[3]**2/Q[0])
-    px = (gamma - 1.)* (Qx[4] - 1./Q[0]*(Q[3]*Qx[3] + Q[2]*Qx[2] + Q[1]*Qx[1]) + 0.5/Q[0]**2*Qx[0]*(Q[3]**2 + Q[2]**2 + Q[1]**2) )
-    py = (gamma - 1.)* (Qy[4] - 1./Q[0]*(Q[3]*Qy[3] + Q[2]*Qy[2] + Q[1]*Qy[1]) + 0.5/Q[0]**2*Qy[0]*(Q[3]**2 + Q[2]**2 + Q[1]**2) )
-    pz = (gamma - 1.)* (Qz[4] - 1./Q[0]*(Q[3]*Qz[3] + Q[2]*Qz[2] + Q[1]*Qz[1]) + 0.5/Q[0]**2*Qz[0]*(Q[3]**2 + Q[2]**2 + Q[1]**2) )
+    self.gamma = 1.4
+    p = (self.gamma - 1.)*(Q[4] - 0.5*Q[1]**2/Q[0] - 0.5*Q[2]**2/Q[0] - 0.5*Q[3]**2/Q[0])
+    px = (self.gamma - 1.)* (Qx[4] - 1./Q[0]*(Q[3]*Qx[3] + Q[2]*Qx[2] + Q[1]*Qx[1]) + 0.5/Q[0]**2*Qx[0]*(Q[3]**2 + Q[2]**2 + Q[1]**2) )
+    py = (self.gamma - 1.)* (Qy[4] - 1./Q[0]*(Q[3]*Qy[3] + Q[2]*Qy[2] + Q[1]*Qy[1]) + 0.5/Q[0]**2*Qy[0]*(Q[3]**2 + Q[2]**2 + Q[1]**2) )
+    pz = (self.gamma - 1.)* (Qz[4] - 1./Q[0]*(Q[3]*Qz[3] + Q[2]*Qz[2] + Q[1]*Qz[1]) + 0.5/Q[0]**2*Qz[0]*(Q[3]**2 + Q[2]**2 + Q[1]**2) )
     f = listContainer_1d(self.nvars)
     f = listContainer_1d(self.nvars)
     f = listContainer_1d(self.nvars)
@@ -70,35 +72,35 @@ class eulerEqns3D:
     returns vector products [ dF_i/dV(Q0) ]^TQp_i, i=1,2,3, where
     F_i is the flux vector in the ith direction, F_i: V -> F(V)
     '''
-    gamma = 1.4
+    self.gamma = 1.4
     u = Q0[1]/Q0[0]
     v = Q0[2]/Q0[0]
     w = Q0[3]/Q0[0]
     qsqr = u**2 + v**2 + w**2
     # compute H in three steps (H = E + p/rho)
-    H = (gamma - 1.)*(Q0[4] - 0.5*Q0[0]*qsqr) #compute pressure
+    H = (self.gamma - 1.)*(Q0[4] - 0.5*Q0[0]*qsqr) #compute pressure
     H += Q0[4]
     H /= Q0[0]
     fx = listContainer_1d(self.nvars)
-    fx[0] = ( (gamma - 1.)/2.*qsqr - u**2 )*Qp1[1] - u*v*Qp1[2] - u*w*Qp1[3] + ((gamma - 1.)/2.*qsqr - H)*u*Qp1[4]
-    fx[1] = Qp1[0] + (3 - gamma)*u*Qp1[1] + v*Qp1[2] + w*Qp1[3] + (H + (1. - gamma)*u**2)*Qp1[4] 
-    fx[2] = (1 - gamma)*v*Qp1[1] + u*Qp1[2] + (1 - gamma)*u*v*Qp1[4]
-    fx[3] = (1 - gamma)*w*Qp1[1] + u*Qp1[3] + (1 - gamma)*u*w*Qp1[4] 
-    fx[4] = (gamma - 1.)*Qp1[1] + gamma*u*Qp1[4]
+    fx[0] = ( (self.gamma - 1.)/2.*qsqr - u**2 )*Qp1[1] - u*v*Qp1[2] - u*w*Qp1[3] + ((self.gamma - 1.)/2.*qsqr - H)*u*Qp1[4]
+    fx[1] = Qp1[0] + (3 - self.gamma)*u*Qp1[1] + v*Qp1[2] + w*Qp1[3] + (H + (1. - self.gamma)*u**2)*Qp1[4] 
+    fx[2] = (1 - self.gamma)*v*Qp1[1] + u*Qp1[2] + (1 - self.gamma)*u*v*Qp1[4]
+    fx[3] = (1 - self.gamma)*w*Qp1[1] + u*Qp1[3] + (1 - self.gamma)*u*w*Qp1[4] 
+    fx[4] = (self.gamma - 1.)*Qp1[1] + self.gamma*u*Qp1[4]
   
     fy = listContainer_1d(self.nvars)
-    fy[0] = -v*u*Qp2[1] + ( (gamma - 1.)/2.*qsqr - v**2 )*Qp2[2] - v*w*Qp2[3] +  ((gamma - 1.)/2.*qsqr - H)*v*Qp2[4]
-    fy[1] = v*Qp2[1] + (1 - gamma)*v*Qp2[2] + (1 - gamma)*u*v*Qp2[4]
-    fy[2] = Qp2[0] + u*Qp2[1] + (3. - gamma)*u*Qp2[2] + w*Qp2[3] + (H + (1. - gamma)*v**2 )*Qp2[4] 
-    fy[3] = (1. - gamma)*w*Qp2[2] + v*Qp2[3] + (1. - gamma)*v*w*Qp2[4] 
-    fy[4] = (gamma - 1.)*Qp2[2] + gamma*v*Qp2[4] 
+    fy[0] = -v*u*Qp2[1] + ( (self.gamma - 1.)/2.*qsqr - v**2 )*Qp2[2] - v*w*Qp2[3] +  ((self.gamma - 1.)/2.*qsqr - H)*v*Qp2[4]
+    fy[1] = v*Qp2[1] + (1 - self.gamma)*v*Qp2[2] + (1 - self.gamma)*u*v*Qp2[4]
+    fy[2] = Qp2[0] + u*Qp2[1] + (3. - self.gamma)*u*Qp2[2] + w*Qp2[3] + (H + (1. - self.gamma)*v**2 )*Qp2[4] 
+    fy[3] = (1. - self.gamma)*w*Qp2[2] + v*Qp2[3] + (1. - self.gamma)*v*w*Qp2[4] 
+    fy[4] = (self.gamma - 1.)*Qp2[2] + self.gamma*v*Qp2[4] 
   
     fz = listContainer_1d(self.nvars)
-    fz[0] = -u*w*Qp3[1] - v*w*Qp3[2] + ( (gamma - 1.)/2.*qsqr - w**2)*Qp3[3] + ((gamma - 1.)/2.*qsqr - H)*w*Qp3[4] 
-    fz[1] = w*Qp3[1] + (1. - gamma)*u*Qp3[3] + (1. - gamma)*u*v*Qp3[4]
-    fz[2] = w*Qp3[2] + (1. - gamma)*v*Qp3[3] + (1. - gamma)*v*w*Qp3[4]
-    fz[3] = Qp3[0] + u*Qp3[1] + v*Qp3[2] + (3. - gamma)*w*Qp3[3] + (H + (1. - gamma)*w**2 )*Qp3[4]
-    fz[4] = (gamma - 1.)*Qp3[3] + gamma*w*Qp3[4]
+    fz[0] = -u*w*Qp3[1] - v*w*Qp3[2] + ( (self.gamma - 1.)/2.*qsqr - w**2)*Qp3[3] + ((self.gamma - 1.)/2.*qsqr - H)*w*Qp3[4] 
+    fz[1] = w*Qp3[1] + (1. - self.gamma)*u*Qp3[3] + (1. - self.gamma)*u*v*Qp3[4]
+    fz[2] = w*Qp3[2] + (1. - self.gamma)*v*Qp3[3] + (1. - self.gamma)*v*w*Qp3[4]
+    fz[3] = Qp3[0] + u*Qp3[1] + v*Qp3[2] + (3. - self.gamma)*w*Qp3[3] + (H + (1. - self.gamma)*w**2 )*Qp3[4]
+    fz[4] = (self.gamma - 1.)*Qp3[3] + self.gamma*w*Qp3[4]
     return fx,fy,fz
   
   
@@ -110,7 +112,7 @@ class eulerEqns3D:
     returns vector products [ dF_i/dV(Q0) ]Qp_i, i=1,2,3, where
     F_i is the flux vector in the ith direction, F_i: V -> F(V)
     '''
-    gamma = 1.4
+    gamma = self.gamma 
     u = Q0[1]/Q0[0]
     v = Q0[2]/Q0[0]
     w = Q0[3]/Q0[0]
