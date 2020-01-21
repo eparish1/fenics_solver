@@ -96,10 +96,10 @@ Ly = 2.*pi
 Lz = 2.*pi
 x0 = Point(0.,0.,0.)
 x1 = Point(Lx,Ly,Lz)
-mesh = BoxMesh(x0,x1,32,32,32)
+mesh = BoxMesh(x0,x1,8,8,8)
 File("mesh.pvd") << mesh
 
-element = VectorElement("CG", mesh.ufl_cell(), 1,dim=5)
+element = VectorElement("CG", mesh.ufl_cell(), 3,dim=5)
 V = FunctionSpace(mesh, element, constrained_domain=PeriodicDomainXYZ())
 
 #f0 = Expression('sin(x[0])*cos(x)*sin(y)')
@@ -135,7 +135,7 @@ for i in range(0,5):
   R_strongDT[i] = R_strong[i] + dti*(U[i] - U_n[i])
 F = 0
 tau = 0.5*dt
-q_degree = 3
+q_degree = 3*3
 dx = dx(metadata={'quadrature_degree': q_degree})
 
 
