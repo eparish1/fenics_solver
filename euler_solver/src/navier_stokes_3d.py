@@ -13,6 +13,167 @@ class navierStokesEqns3D:
     self.mu = mu
     self.Pr = Pr
     self.params = {"mu":self.mu , "gamma":self.gamma, "Pr":self.Pr }
+
+
+  def evalGsGradients2(self,GC):
+    gamma = 1.4
+    Pr = 0.72
+    ## initialize containers
+    GCD = listContainer_2d(3,3) 
+    G11 = listContainer_2d(self.nvars,self.nvars)
+    G21 = listContainer_2d(self.nvars,self.nvars)
+    G31 = listContainer_2d(self.nvars,self.nvars)
+    G12 = listContainer_2d(self.nvars,self.nvars)
+    G22 = listContainer_2d(self.nvars,self.nvars)
+    G32 = listContainer_2d(self.nvars,self.nvars)
+    G13 = listContainer_2d(self.nvars,self.nvars)
+    G23 = listContainer_2d(self.nvars,self.nvars)
+    G33 = listContainer_2d(self.nvars,self.nvars)
+
+   
+    for i in range(0,5):
+      for j in range(0,5):
+        try:
+          G11x[i][j] = GC[0][0][i][j].dx(0)
+        except:
+          pass
+        try:
+          G21x[i][j] = GC[1][0][i][j].dx(0)
+        except:
+          pass
+        try:
+          G31x[i][j] = GC[2][0][i][j].dx(0)
+        except:
+          pass
+        try:
+          G12y[i][j] = GC[0][1][i][j].dx(1)
+        except:
+          pass
+        try:
+          G22y[i][j] = GC[1][1][i][j].dx(1)
+        except:
+          pass
+        try:
+          G32y[i][j] = GC[2][1][i][j].dx(1)
+        except:
+          pass
+        try:
+          G13z[i][j] = GC[0][2][i][j].dx(2)
+        except:
+          pass
+        try:
+          G23z[i][j] = GC[1][2][i][j].dx(2)
+        except:
+          pass
+        try:
+          G33z[i][j] = GC[2][2][i][j].dx(2)
+        except:
+          pass
+    '''
+    G11x[1][0] = GC[0][0][1][0].dx(0)# -4./3.*u*mu_by_rho
+    G11x[1][1] = GC[0][0][1][1].dx(0)#4./3.*mu_by_rho
+    G11x[2][0] = GC[0][0][2][0].dx(0)#-v*mu_by_rho
+    G11x[2][2] = GC[0][0][2][2].dx(0)#mu_by_rho
+    G11x[3][0] = GC[0][0][3][0].dx(0)#-w*mu_by_rho
+    G11x[3][3] = GC[0][0][3][3].dx(0)#mu_by_rho
+    G11x[4][0] = GC[0][0][4][0].dx(0)#-(4./3.*u**2 + v**2 + w**2 + gamma/Pr*(E - vsqr) )*mu_by_rho
+    G11x[4][1] = GC[0][0][4][1].dx(0)#(4./3. - gamma/Pr)*u*mu_by_rho
+    G11x[4][2] = GC[0][0][4][2].dx(0)#(1. - gamma/Pr)*v*mu_by_rho
+    G11x[4][3] = GC[0][0][4][3].dx(0)#(1. - gamma/Pr)*w*mu_by_rho
+    G11x[4][4] = GC[0][0][4][4].dx(0)#gamma/Pr*mu_by_rho
+ 
+    G21x[1][0] = G11x[2][0]#-v*mu_by_rho
+    G21x[1][2] = GC[1][0][1][2].dx(0)#mu_by_rho
+    G21x[2][0] = GC[1][0][2][0].dx(0)#2./3.*u*mu_by_rho
+    G21x[2][1] = GC[1][0][2][1].dx(0)#-2./3.*mu_by_rho
+    G21x[4][0] = GC[1][0][4][0].dx(0)#-1./3.*u*v*mu_by_rho
+    G21x[4][1] = GC[1][0][4][1].dx(0)#-2./3.*v*mu_by_rho
+    G21x[4][2] = GC[1][0][4][2].dx(0)#u*mu_by_rho
+
+    G31x[1][0] = G11x[3][0]#-w*mu_by_rho
+    G31x[1][3] = GC[2][0][1][3].dx(0)#mu_by_rho
+    G31x[3][0] = GC[2][0][3][0].dx(0)#G21[2][0]#2./3.*v1*mu_by_rho
+    G31x[3][1] = GC[2][0][3][1].dx(0)#G21[2][1]#-2./3.*mu_by_rho
+    G31x[4][0] = GC[2][0][4][0].dx(0)#-1./3.*u*w*mu_by_rho
+    G31x[4][1] = GC[2][0][4][1].dx(0)#2./3.*G11[3][0]#-2./3.*w*mu_by_rho
+    G31x[4][3] = GC[2][0][4][3].dx(0)#G21[4][2]#v1*mu_by_rho
+
+
+    G12y[1][0] = GC[0][1][1][0].dx(1) 
+    G12y[1][2] = GC[0][1][1][2].dx(1) 
+    G12y[2][0] = GC[0][1][2][0].dx(1) 
+    G12y[2][1] = GC[0][1][2][1].dx(1) 
+    G12y[4][0] = GC[0][1][4][0].dx(1) 
+    G12y[4][1] = GC[0][1][4][1].dx(1) 
+    G12y[4][2] = GC[0][1][4][2].dx(1) 
+
+    G22y[1][0] = GC[1][1][1][0].dx(1) 
+    G22y[1][1] = GC[1][1][1][0].dx(1) 
+    G22y[2][0] = GC[1][1][2][0].dx(1) 
+    G22y[2][2] = GC[1][1][2][2].dx(1) 
+    G22y[3][0] = GC[1][1][3][0].dx(1) 
+    G22y[3][3] = GC[1][1][3][3].dx(1) 
+    G22y[4][0] = GC[1][1][4][0].dx(1) 
+    G22y[4][1] = GC[1][1][4][1].dx(1) 
+    G22y[4][2] = GC[1][1][4][2].dx(1) 
+    G22y[4][3] = GC[1][1][4][3].dx(1) 
+    G22y[4][4] = GC[1][1][4][4].dx(1) 
+
+    G32y[2][0] = G22[3][0]#-w*mu_by_rho
+    G32y[2][3] = mu_by_rho
+    G32y[3][0] = G12[1][0]#2./3.*v*mu_by_rho
+    G32y[3][2] = G12[1][2]#-2./3.*mu_by_rho
+    G32y[4][0] = -1./3.*v*w*mu_by_rho
+    G32y[4][2] = -2./3.*w*mu_by_rho
+    G32y[4][3] = G12[4][1]#v*mu_by_rho
+
+    G13z[1][0] = 2./3.*w*mu_by_rho
+    G13z[1][3] = -2./3.*mu_by_rho
+    G13z[3][0] = -u*mu_by_rho
+    G13z[3][1] = mu_by_rho
+    G13z[4][0] = -1./3.*u*w*mu_by_rho
+    G13z[4][1] = w*mu_by_rho
+    G13z[4][3] = -2./3.*u*mu_by_rho
+
+    G23z[2][0] = G13[1][0]#2./3.*w*mu_by_rho
+    G23z[2][3] = -2./3.*mu_by_rho
+    G23z[3][0] = -v*mu_by_rho
+    G23z[3][2] = mu_by_rho
+    G23z[4][0] = -1./3.*v*w*mu_by_rho
+    G23z[4][2] = G13[4][1]#w*mu_by_rho
+    G23z[4][3] = -2./3.*v*mu_by_rho
+
+    G33z[1][0] = -u*mu_by_rho
+    G33z[1][1] = mu_by_rho
+    G33z[2][0] = -v*mu_by_rho
+    G33z[2][2] = mu_by_rho
+    G33z[3][0] = -4./3.*w*mu_by_rho
+    G33z[3][3] = 4./3.*mu_by_rho
+    G33z[4][0] = -(u**2 + v**2 + 4./3.*w**2 + gamma/Pr*(E - vsqr) )*mu_by_rho
+    G33z[4][1] = (1. - gamma/Pr)*u*mu_by_rho
+    G33z[4][2] = (1. - gamma/Pr)*v*mu_by_rho
+    G33z[4][3] = (4./3. - gamma/Pr)*w*mu_by_rho
+    G33z[4][4] = gamma/Pr*mu_by_rho
+    '''
+    GCD[0][0] = G11
+    GCD[0][1] = G12
+    GCD[0][2] = G13
+    GCD[1][0] = G21
+    GCD[1][1] = G22
+    GCD[1][2] = G23
+    GCD[2][0] = G31
+    GCD[2][1] = G32
+    GCD[2][2] = G33
+    return GCD
+
+
+
+
+
+
+
+
+
   def evalGsGradients(self,Q,Qx,Qy,Qz):
     gamma = 1.4
     Pr = 0.72
@@ -119,9 +280,9 @@ class navierStokesEqns3D:
     G33z[2][0] = -v_z
     G33z[3][0] = -4./3.*w_z
     G33z[4][0] = -gamma/Pr*(E_z - vsqr_z) - 8./3.*w*w_z - 2*v*v_z - 2.*u*u_z
-    G33z[4][1] = (1. - gamma/Pr)*u_x
-    G33z[4][2] = (1. - gamma/Pr)*v_x
-    G33z[4][3] = (4./3. - gamma/Pr)*w_x
+    G33z[4][1] = (1. - gamma/Pr)*u_z
+    G33z[4][2] = (1. - gamma/Pr)*v_z
+    G33z[4][3] = (4./3. - gamma/Pr)*w_z
 
     # add mu_by_rho contribution via chain rule
     mu_by_rho_x = mu_x * rho_inv - mu*rho_inv**2*Qx[0]
@@ -137,7 +298,7 @@ class navierStokesEqns3D:
         G32y[i][j] *= mu_by_rho_y
         G13z[i][j] *= mu_by_rho_z 
         G23z[i][j] *= mu_by_rho_z 
-#        G33z[i][j] *= mu_by_rho_z
+        G33z[i][j] *= mu_by_rho_z
 
     GC[0][0] = G11x
     GC[0][1] = G12y

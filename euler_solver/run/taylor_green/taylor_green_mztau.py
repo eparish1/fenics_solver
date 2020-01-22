@@ -4,10 +4,13 @@ sys.path.append('../../src/')
 from navier_stokes_3d import *
 import numpy as np
 from list_container import *
+import time
 #from boundary_conditions import *
 if has_linear_algebra_backend("Epetra"):
     parameters["linear_algebra_backend"] = "Epetra"
 
+parameters["form_compiler"]["representation"] = "uflacs"
+parameters["form_compiler"]["cpp_optimize"] = True
 # Sub domain for Dirichlet boundary condition
 class PeriodicDomainXYZ(SubDomain):
     # Left boundary is "target domain" G
@@ -97,9 +100,9 @@ Ly = 2.*pi
 Lz = 2.*pi
 x0 = Point(0.,0.,0.)
 x1 = Point(Lx,Ly,Lz)
-mesh = BoxMesh(x0,x1,16,16,16)
+mesh = BoxMesh(x0,x1,2,2,2)
 File("mesh.pvd") << mesh
-poly_order = 3
+poly_order = 2
 element = VectorElement("CG", mesh.ufl_cell(), poly_order,dim=5)
 V = FunctionSpace(mesh, element, constrained_domain=PeriodicDomainXYZ())
 
@@ -117,21 +120,27 @@ Phi = TestFunction(V)
 ## for additional MZ projection
 Rproject = Function(V)
 
-
 u_init = InitialConditionsVortex()
 U.interpolate(u_init)
 U_n.interpolate(u_init)
 tau = 0.#1./64.
 dt = 0.1
 dti = 1./dt
-et = 50.
+et = 1.
 Ux,Uy,Uz = U.dx(0), U.dx(1),U.dx(2)
 
 eqn = navierStokesEqns3D(mu=1./1600.*0.2)
 #Rx,Ry,Rz = eqn.evalF(U)
 GC = eqn.evalGs(U)
-GC_grad = eqn.evalGsGradients(U,Ux,Uy,Uz)
+#GC_grad = eqn.evalGsGradients(U,Ux,Uy,Uz)
+GC_grad = eqn.evalGsGradients2(GC)
+#for i in range(0,2):
+#  for j in range(0,3):
+#    GC_grad[i][j] = GC_grad2[i][j]
+
 JTPhi_x,JTPhi_y,JTPhi_z = eqn.applyJT(U, Phi.dx(0),Phi.dx(1),Phi.dx(2) )
+Rx,Ry,Rz =  eqn.evalF(U)
+#R_strong = Rx.dx(0) + Ry.dx(1) + Rz.dx(2)
 R_strong  = eqn.evalF_Strong(U,Ux,Uy,Uz)
 R_strong_n  = eqn.evalF_Strong(U_n,U_n.dx(0),U_n.dx(1),U_n.dx(2))
 
@@ -139,7 +148,7 @@ R_ortho = listContainer_1d(5)
 for i in range(0,5):
   R_ortho[i] = R_strong[i] - Rproject[i]
 tau = 0.01#0.5*dt
-q_degree = 6
+q_degree = 4
 dx = dx(metadata={'quadrature_degree': q_degree})
 
 Gx =   containerMatTransposeVec(GC[0][0],Phi.dx(0)) + \
@@ -155,23 +164,24 @@ Gz =   containerMatTransposeVec(GC[0][2],Phi.dx(0)) + \
        containerMatTransposeVec(GC[2][2],Phi.dx(2))
 
 
-GTX = containerMatTransposeVec(GC_grad[0][0],Phi.dx(0)) + \
-      containerMatTransposeVec(GC_grad[1][0],Phi.dx(1)) + \
-      containerMatTransposeVec(GC_grad[2][0],Phi.dx(2))
+GTX = containerMatTransposeVec(GC_grad[0][0],Phi.dx(0)) + containerMatTransposeVec(GC[0][0],Phi.dx(0).dx(0)) + \
+      containerMatTransposeVec(GC_grad[1][0],Phi.dx(1)) + containerMatTransposeVec(GC[1][0],Phi.dx(1).dx(1)) + \
+      containerMatTransposeVec(GC_grad[2][0],Phi.dx(2)) + containerMatTransposeVec(GC[2][0],Phi.dx(2).dx(2))
 
-GTY = containerMatTransposeVec(GC_grad[0][1],Phi.dx(0)) + \
-      containerMatTransposeVec(GC_grad[1][1],Phi.dx(1)) + \
-      containerMatTransposeVec(GC_grad[2][1],Phi.dx(2))
 
-GTZ = containerMatTransposeVec(GC_grad[0][2],Phi.dx(0)) + \
-      containerMatTransposeVec(GC_grad[1][2],Phi.dx(1)) + \
-      containerMatTransposeVec(GC_grad[2][2],Phi.dx(2))
+GTY = containerMatTransposeVec(GC_grad[0][1],Phi.dx(0)) + containerMatTransposeVec(GC[0][1],Phi.dx(0).dx(0)) + \
+      containerMatTransposeVec(GC_grad[1][1],Phi.dx(1)) + containerMatTransposeVec(GC[1][1],Phi.dx(1).dx(1)) + \
+      containerMatTransposeVec(GC_grad[2][1],Phi.dx(2)) + containerMatTransposeVec(GC[2][1],Phi.dx(2).dx(2))
+
+GTZ = containerMatTransposeVec(GC_grad[0][2],Phi.dx(0)) + containerMatTransposeVec(GC[0][2],Phi.dx(0).dx(0)) + \
+      containerMatTransposeVec(GC_grad[1][2],Phi.dx(1)) + containerMatTransposeVec(GC[1][2],Phi.dx(1).dx(1)) + \
+      containerMatTransposeVec(GC_grad[2][2],Phi.dx(2)) + containerMatTransposeVec(GC[2][2],Phi.dx(2).dx(2))
 
 F = 0
 for i in range(0,5):
   F +=  inner(Phi[i] ,R_strong[i] )*dx + \
         inner(JTPhi_x[i] + JTPhi_y[i] + JTPhi_z[i],tau*R_ortho[i] )*dx + \
-        inner(Gx[i] , U[i].dx(0))*dx + inner(Gy[i] , Uy[i])*dx + inner(Gz[i],Uz[i])*dx 
+        inner(Gx[i] , Ux[i])*dx + inner(Gy[i] , Uy[i])*dx + inner(Gz[i],Uz[i])*dx 
 for i in range(0,4):
   F +=  inner(GTX[i] + GTY[i] + GTZ[i], tau*R_ortho[i])*dx
 
@@ -201,6 +211,7 @@ fl = open(sol_file + '/settings.dat',"w")
 fl.write( str(info_dict) )
 fl.close()
 #np.savez(sol_file + '/settings',information=info_dict,params = eqn.params)
+t0 = time.time()
 while (t <= et - dt/2):
   if (counter%save_freq == 0):
     Hdf.write(U,"u",counter)
@@ -217,4 +228,5 @@ while (t <= et - dt/2):
   counter += 1
   sys.stdout.write('Energy = ' + str(integral) + '\n')
   sys.stdout.write('t = ' + str(t) + '\n')
+  sys.stdout.write('Walltime = ' + str(time.time() - t0) + '\n')
   sys.stdout.flush()

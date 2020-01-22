@@ -118,7 +118,7 @@ u_init = InitialConditionsVortex()
 U.interpolate(u_init)
 U_n.interpolate(u_init)
 tau = 0.#1./64.
-dt = 0.025
+dt = 0.05
 dti = 1./dt
 et = 100.
 Ux,Uy,Uz = U.dx(0), U.dx(1),U.dx(2)

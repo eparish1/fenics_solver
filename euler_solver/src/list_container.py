@@ -35,8 +35,11 @@ class listContainer_1d:
       c[i] = self.obj[i] + obj[i]
     return c
 
-
-
+  def dx(self,index):
+    cx = listContainer_1d(self.size1)
+    for i in range(0,self.size1):
+      cx[i] = self.obj[i].dx(index)
+    return cx
 def containerMatVec(M,Q):
   ''' 
   computes the matrix vector product MQ
