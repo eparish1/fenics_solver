@@ -444,32 +444,64 @@ class navierStokesEqns3D:
     return GC
 
 
-  def evalF_Viscous(self,Q,Qx):
-    gamma = 1.4
-    Pr = 0.72
+  def evalViscousFlux(self,Q):
+    '''
+    Function to evaluate \nabla \cdot  F_v
+    '''
+    gamma = self.gamma 
+    Pr = self.Pr
+    mu = self.mu
     ## ->  v_x = 1/rho d/dx(rho v) - rho v /rho^2 rho_x
-    ux = 1./Q[0]*(Qx[1] - Q[1]/Q[0]*Qx[0])
-    vx = 1./Q[0]*(Qx[2] - Q[2]/Q[0]*Qx[0])
-    wx = 1./Q[0]*(Qx[3] - Q[3]/Q[0]*Qx[0])
-    ## ->  u_y = 1/rho d/dy(rho u) - rho u /rho^2 rho_y
-    uy = 1./Q[0]*(Uy[1] - Q[1]/Q[0]*Uy[0])
-    vy = 1./Q[0]*(Uy[2] - Q[2]/Q[0]*Uy[0])
-    ## ->  u_z = 1/rho d/dz(rho u) - rho u /rho^2 rho_z
-    uz = 1./Q[0]*(Uz[1] - Q[1]/Q[0]*Uz[0])
-    wz = 1./Q[0]*(Uz[3] - Q[3]/Q[0]*Uz[0])
-    ## -> (kT)_x =d/dx[ (mu gamma)/Pr*(E - 1/2 v^2 ) ]
-    ## ->        =mu gamma/Pr *[ dE/dx - 0.5 d/dx(v1^2 + v^2) ]
-    ## ->        =mu gamma/Pr *[ dE/dx - (v1 v1_x + v v_x) ]
-    ## ->  E_x = 1/rho d/x(rho E) - rho E /rho^2 rho_x
-    kTx =( 1./Q[0]*(Qx[4] - Q[4]/Q[0]*Qx[0] - (Q[1]*ux + Q[2]*vx + Q[3]*wx)  ))*mu*gamma/Pr
-    fx = [0]*5 
-    v1 = Q[1]/Q[0]
+    u = Q[1]/Q[0]
     v = Q[2]/Q[0]
     w = Q[3]/Q[0]
-    fx[1] = 2./3.*mu*(2.*ux - vy - wz) #tau11
-    fx[2] = mu*(uy + vx)  #tau11
-    fx[3] = mu*(uz + wx) #tau13
-    fx[4] = fx[1]*v1 + fx[2]*v + fx[3]*w + kTx
-    return fx
- 
+    ux = u.dx(0)
+    uy = u.dx(1)
+    uz = u.dx(2)
+
+    vx = v.dx(0)
+    vy = v.dx(1)
+    vz = v.dx(2)
+  
+    wx = w.dx(0)
+    wy = w.dx(1)
+    wz = w.dx(2)
+  
+    rho_inv = 1./Q[0]
+    p = (self.gamma - 1.)*(Q[4] - 0.5*rho_inv*(Q[1]**2 + Q[2]**2 + Q[3]**2) )
+    p_by_rho = rho_inv*p
+    
+    qx = -gamma*mu / (Pr*(gamma - 1.) )*p_by_rho.dx(0)
+    qy = -gamma*mu / (Pr*(gamma - 1.) )*p_by_rho.dx(1)
+    qz = -gamma*mu / (Pr*(gamma - 1.) )*p_by_rho.dx(2)
+  
+    
+  
+    fx = listContainer_1d(5)
+    fx[1] = 2./3.*mu*(2.*ux - vy - wz) 
+    fx[2] = mu*(uy + vx)  
+    fx[3] = mu*(uz + wx) 
+    fx[4] = fx[1]*u + fx[2]*v + fx[3]*w - qx 
+  
+    fy = listContainer_1d(5)
+  
+    fy[1] = fx[2]
+    fy[2] = 2./3.*mu*(2.*vy - ux - wz) 
+    fy[3] = mu*(vz + wy) 
+    fy[4] = fy[1]*u + fy[2]*v + fy[3]*w - qy
+  
+  
+    fz = listContainer_1d(5)
+    fz[1] = fx[3]
+    fz[2] = fy[3]
+    fz[3] = 2./3.*mu*(2.*wz - ux - vy)
+    fz[4] = fz[1]*u + fz[2]*v + fz[3]*w - qz
+  
+    for i in range(1,5):
+      fx[i] = fx[i].dx(0)
+      fy[i] = fy[i].dx(1)
+      fz[i] = fz[i].dx(2)
+  
+    return fx + fy + fz
+
 
