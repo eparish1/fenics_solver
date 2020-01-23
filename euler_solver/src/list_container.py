@@ -29,6 +29,12 @@ class listContainer_1d:
   def size(self):
     return self.size1
 
+  def __sub__(self,obj):
+    c = listContainer_1d(self.size1)
+    for i in range(0,self.size1):
+      c[i] = self.obj[i] - obj[i]
+    return c
+
   def __add__(self,obj):
     c = listContainer_1d(self.size1)
     for i in range(0,self.size1):
