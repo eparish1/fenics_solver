@@ -11,7 +11,7 @@ def boundaryUD(x):
 
 
 
-def executeRom(romProblem,physProblem,fom_sol,dt_fom):
+def executeRom(romProblem,physProblem,fom_sol,dt_fom,save_output=True):
   femProblem = romProblem.femProblem 
   if (romProblem.methodDiscrete == 'LSPG'):
     romProblem.dt = romProblem.tau*1.
@@ -120,5 +120,6 @@ def executeRom(romProblem,physProblem,fom_sol,dt_fom):
     counter += 1
 
   sol_loc = 'solrom' + romProblem.basis_type + methodContinuous + '_' + methodDiscrete + '_tauFEM_' + str(femProblem.tau) + '_tauROM_' + str(romProblem.tau) + '_N_' + str(romProblem.N) + '_p_' + str(romProblem.p) + '_dt_' + str(romProblem.dt) + '/'
-  romPP.saveSol(romProblem,sol_loc)
+  if save_output:
+    romPP.saveSol(romProblem,sol_loc)
   return romPP.error_l2,romPP.error_h1
