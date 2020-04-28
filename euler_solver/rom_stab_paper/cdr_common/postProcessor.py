@@ -59,5 +59,5 @@ class postProcessor:
       U_final = grab_sol(romProblem,self.aDOFSave[:,-1])
       if not os.path.exists(sol_loc):
         os.mkdir(sol_loc)
-      np.savez(sol_loc + 'usave',K=romProblem.K,xhat=self.aDOFSave,error_l2p=self.error_l2,error_h1p=self.error_h1,dt=romProblem.dt,t=self.tsave,U_final=U_final)#,error_l2=(self.error_l2+self.error_ortho_l2),error_h1=(self.error_h1+self.error_ortho_h1))
+      np.savez(sol_loc + 'usave',K=romProblem.K,xhat=self.aDOFSave,error_l2p=self.error_l2,error_h1p=self.error_h1,dt=romProblem.dt,t=self.tsave,U_final=U_final,tauROM=romProblem.tau,tauFEM=romProblem.femProblem.tau)#,error_l2=(self.error_l2+self.error_ortho_l2),error_h1=(self.error_h1+self.error_ortho_h1))
     self.saveSol = saveSol 
