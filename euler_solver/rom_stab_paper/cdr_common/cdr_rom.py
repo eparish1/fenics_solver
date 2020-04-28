@@ -4,21 +4,32 @@ import os
 from postProcessor import *
 
 
+def boundaryLR(x):
+    return x[0] < DOLFIN_EPS or x[0] > 1.0 - DOLFIN_EPS
+def boundaryUD(x):
+    return x[1] < DOLFIN_EPS or x[1] > 1.0 - DOLFIN_EPS
 
 
-def executeRom(taus,romProblem,physProblem,fom_sol,dt_fom): 
+
+def executeRom(romProblem,physProblem,fom_sol,dt_fom):
+  femProblem = romProblem.femProblem 
   if (romProblem.methodDiscrete == 'LSPG'):
-    romProblem.dt = taus*1.
+    romProblem.dt = romProblem.tau*1.
 
   romPP = postProcessor(romProblem,fom_sol,dt_fom)
   Phi = romProblem.Phi
-  tau = Constant(taus)
+  tau = Constant(femProblem.tau)
   methodContinuous = romProblem.methodContinuous
   methodDiscrete = romProblem.methodDiscrete
   # Define variational problem
   U_n = Function(romProblem.functionSpace)
   U_nm1 = Function(romProblem.functionSpace)
   U_nm1.interpolate(physProblem.initialConditionFunction())
+
+  u0 = Constant(0.0)
+  bclr = DirichletBC(romProblem.functionSpace,u0, boundaryLR)
+  bcud = DirichletBC(romProblem.functionSpace,u0, boundaryUD)
+  bcs = [bclr,bcud]
 
 
   f = Constant(physProblem.f_mag)
@@ -62,23 +73,32 @@ def executeRom(taus,romProblem,physProblem,fom_sol,dt_fom):
   AM = assemble(A_form)
   velocity = assemble(velocity_form) 
   RHSv = assemble(RHS)
+  #for bc in bcs:
+  #  bc.apply(AM)
+  #  bc.apply(RHSv)
+
   Phi_test = Phi*1.
 
   if methodDiscrete == 'ADJ':
-    Phi_test = Phi_test - tau*np.linalg.solve(romProblem.M.array(), np.dot(AM.array().transpose(),Phi_test))
+    Phi_test = Phi_test - romProblem.tau*np.linalg.solve(romProblem.M.array(), np.dot(AM.array().transpose(),Phi_test))
     #Phi_test = np.linalg.solve(M.array(),Phi_test)# np.dot(np.linalg.inv(M.array()),Phi_test)
 
   if methodDiscrete == 'LSPG':
     Phi_test = np.dot(romProblem.M.array(),Phi_test)*1./romProblem.dt - np.dot(velocity.array(),Phi_test)
     Phi_test = np.dot(romProblem.Minv,Phi_test)  #np.linalg.solve(romProblem.M.array(),Phi_test)
 
-  AMR = np.dot(Phi_test.transpose(),np.dot(AM.array(),Phi)) 
   if methodDiscrete == 'APG':
-    Pi = np.dot(Phi,np.dot(Phi.transpose() , romProblem.M.array()))
-    #Pi = np.dot(Phi,Phi.transpose() )
-    Pihat = np.eye(np.shape(Phi)[0] ) - Pi
-    SGS = taus*np.dot(velocity.array(),np.dot(Pihat,np.dot(romProblem.Minv,velocity.array())))
-    AMR -= np.dot(Phi_test.transpose(),np.dot(SGS,Phi) )
+    #Pi = np.dot(Phi,np.dot(Phi.transpose() , romProblem.M.array()))
+    ##Pi = np.dot(Phi,Phi.transpose() )
+    #Pihat = np.eye(np.shape(Phi)[0] ) - Pi
+    #SGS = taus*np.dot(velocity.array(),np.dot(Pihat,np.dot(romProblem.Minv,velocity.array())))
+    #AMR -= np.dot(Phi_test.transpose(),np.dot(SGS,Phi) )
+
+    Pihat = romProblem.Minv - np.dot(Phi,Phi.transpose())
+    Phi_test = np.eye(np.shape(Phi)[0] ) - romProblem.tau*np.dot( Pihat.transpose(), -velocity.array().transpose())
+    Phi_test = np.dot(Phi_test,Phi)
+
+  AMR = np.dot(Phi_test.transpose(),np.dot(AM.array(),Phi)) 
 
   RHSvR = np.dot(Phi_test.transpose(),RHSv[:])
   RHSMAT = assemble(RHSMAT)
@@ -90,7 +110,7 @@ def executeRom(taus,romProblem,physProblem,fom_sol,dt_fom):
   counter = 0
   
   sol = np.zeros(romProblem.K)
-  #sol[:] = np.dot(romProblem.Phi.transpose(),np.dot(romProblem.M.array(),U_nm1.vector()[:]) ) 
+  sol[:] = np.dot(romProblem.Phi.transpose(),np.dot(romProblem.M.array(),U_nm1.vector()[:]) ) 
 
 
   while (t <= et - romProblem.dt/2):
@@ -99,6 +119,6 @@ def executeRom(taus,romProblem,physProblem,fom_sol,dt_fom):
     romPP.postProcess(sol,counter,t)
     counter += 1
 
-  sol_loc = 'solrom' + romProblem.basis_type + methodContinuous + '_' + methodDiscrete + '_tau_' + str(taus) + '_N_' + str(romProblem.N) + '_p_' + str(romProblem.p) + '/'
+  sol_loc = 'solrom' + romProblem.basis_type + methodContinuous + '_' + methodDiscrete + '_tauFEM_' + str(femProblem.tau) + '_tauROM_' + str(romProblem.tau) + '_N_' + str(romProblem.N) + '_p_' + str(romProblem.p) + '_dt_' + str(romProblem.dt) + '/'
   romPP.saveSol(romProblem,sol_loc)
-
+  return romPP.error_l2,romPP.error_h1
