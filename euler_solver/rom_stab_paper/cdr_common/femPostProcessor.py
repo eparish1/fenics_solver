@@ -46,7 +46,7 @@ class femPostProcessor:
       if not os.path.exists(self.sol_loc):
         os.mkdir(self.sol_loc)
 
-      skip = 4
+      skip = 1
       K = np.dot( self.UDOFSave[:,::skip].transpose(), np.dot(femCoarseProblem.M.array(),self.UDOFSave[:,::skip]))
       ub,sb,vb = np.linalg.svd(K)
       Phi = np.dot(self.UDOFSave[:,::skip] ,1./np.sqrt(sb+1e-30)*ub )
@@ -55,5 +55,5 @@ class femPostProcessor:
       ub,sb_h,vb = np.linalg.svd(K)
       PhiH = np.dot(self.UDOFSave[:,::skip] ,1./np.sqrt(sb_h+1e-30)*ub )
 
-      np.savez(self.sol_loc + '/pod_basis',UDOFSave=self.UDOFSave,Phi=Phi,sigma=sb,PhiH=PhiH,sigmaH=sb_h,U_final=U_final,MC=femCoarseProblem.M.array(),HC=femCoarseProblem.H.array())
+      np.savez(self.sol_loc + '/pod_basis',UDOFSave=self.UDOFSave[:,::skip],Phi=Phi,sigma=sb,PhiH=PhiH,sigmaH=sb_h,U_final=U_final,MC=femCoarseProblem.M.array(),HC=femCoarseProblem.H.array())
     self.saveSol = saveSol 

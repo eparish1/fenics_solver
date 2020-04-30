@@ -21,8 +21,9 @@ def grab_sol(u_1_):
         Us[i,j] = u_1_(x[i,j],y[i,j])
     return Us
 
-def executeFom(tau,femProblem,physProblem,femCoarseProblem):
-  sol_loc = 'solfom' + femProblem.methodContinuous + '_tau_' + str('analytic') + '_N_' + str(femProblem.N) + '_p_' + str(femProblem.p) + '/'
+def executeFom(tau,femProblem,physProblem,femCoarseProblem,sol_loc):
+  if sol_loc == None:
+    sol_loc = 'solfom' + femProblem.methodContinuous + '_tau_' + str('analytic') + '_N_' + str(femProblem.N) + '_p_' + str(femProblem.p) + '/'
   femPP = femPostProcessor(femProblem,femCoarseProblem,sol_loc,1)
   # Define variational problem
   U = femProblem.U 
