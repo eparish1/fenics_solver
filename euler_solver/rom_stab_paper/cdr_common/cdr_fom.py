@@ -21,10 +21,12 @@ def grab_sol(u_1_):
         Us[i,j] = u_1_(x[i,j],y[i,j])
     return Us
 
-def executeFom(tau,femProblem,physProblem,femCoarseProblem,sol_loc):
+def executeFom(femProblem,physProblem,femCoarseProblem,sol_loc=None,femPP=None):
   if sol_loc == None:
-    sol_loc = 'solfom' + femProblem.methodContinuous + '_tau_' + str('analytic') + '_N_' + str(femProblem.N) + '_p_' + str(femProblem.p) + '/'
-  femPP = femPostProcessor(femProblem,femCoarseProblem,sol_loc,1)
+    sol_loc = 'solfom' + femProblem.methodContinuous + '_tau_' + str(femProblem.tau) + '_N_' + str(femProblem.N) + '_p_' + str(femProblem.p) + '_dt_' + str(femProblem.dt) + '/'
+  if femPP == None:
+    save_freq = 1 
+    femPP = femPostProcessor(femProblem,femCoarseProblem,sol_loc,save_freq)
   # Define variational problem
   U = femProblem.U 
   U_nm1 = femProblem.U_nm1 
@@ -43,7 +45,8 @@ def executeFom(tau,femProblem,physProblem,femCoarseProblem,sol_loc):
   dti = Constant(1./femProblem.dt)
   h = femProblem.mesh.hmin()
   a_mag = sqrt(physProblem.u_field**2 + physProblem.v_field**2)
-  tau = 1.0/( 4.*physProblem.nu_mag / h**2 + 2.*a_mag / h + (physProblem.sigma_mag + 1./femProblem.dt))
+  #tau = 1.0/( 4.*physProblem.nu_mag / h**2 + 2.*a_mag / h + (physProblem.sigma_mag + 1./femProblem.dt))
+  tau = femProblem.tau
   #print(tau)
   ## Residual
   r =  dti*U +  physProblem.u_field*U.dx(0)  + physProblem.v_field*U.dx(1)   - nu*div(grad(U)) + sigma*U 
