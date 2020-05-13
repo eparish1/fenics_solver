@@ -38,7 +38,7 @@ def executeFom(femProblem,physProblem,femCoarseProblem,sol_loc=None,femPP=None):
   bcud = DirichletBC(femProblem.functionSpace,u0, boundaryUD)
   bcs = [bclr,bcud]
 
-  f = Constant(physProblem.f_mag)
+  f =  physProblem.f_field#Constant(physProblem.f_mag)
   nu = Constant(physProblem.nu_mag)
   sigma = Constant(physProblem.sigma_mag)
 

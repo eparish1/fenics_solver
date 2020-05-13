@@ -32,7 +32,7 @@ def executeRom(romProblem,physProblem,fom_sol,dt_fom,save_output=True,custom_sav
   bcs = [bclr,bcud]
 
 
-  f = Constant(physProblem.f_mag)
+  f = physProblem.f_field#Constant(physProblem.f_mag)
   nu = Constant(physProblem.nu_mag)
   sigma = Constant(physProblem.sigma_mag)
 

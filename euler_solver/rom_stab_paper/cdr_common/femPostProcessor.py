@@ -20,7 +20,7 @@ class femPostProcessor:
     self.UDOFSave = np.zeros((femCoarseProblem.N,0))
     self.tsave = np.zeros(0)
     self.save_freq = save_freq
-    self.save_freq_vtk = 10000
+    self.save_freq_vtk = 10
     self.U_coarse = femCoarseProblem.U_working
 
     def saveToVtk(U,counter):
@@ -45,7 +45,7 @@ class femPostProcessor:
       U_final = grab_sol(femCoarseProblem,self.UDOFSave[:,-1])
       if not os.path.exists(self.sol_loc):
         os.mkdir(self.sol_loc)
-      savePod = False
+      savePod = True 
       skip = 1
 
       if savePod:
